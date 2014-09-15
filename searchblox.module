@@ -18,44 +18,43 @@ function searchblox_help($path, $arg)
     
     switch ($path) {
         case "admin/help#searchblox":
-			$output = '';
-			$output .= '<h3>' . t('How To Configure') . '</h3>';
-			$output .= '<p>' . t('<ol>
-									<li> Go to <a href="@settings" target="_blank" > SearchBlox settings page </a> to configure your settings. </li>
-									<li> Enter the name of the collection you have created in your SearchBlox application for indexing your site. </li>
-									<li> Index your site to this collection , after this step you will be able to show your search results from SearchBlox application.</li>
-								    <li> Now on the <a href="@collection" target="_blank" > Search Collection Page </a> Mark those collection from where you need to show search results on your site , if you need to show your results from all the collections
-											available on your application don\'t mark any collection. By default It shows results from all the available collection.
-									</li>
-								  </ol>	', array(
-				'@settings' => url('admin/config/search/searchblox/'),
-				'@collection' => url('admin/config/search/searchblox/searchblox_collection')
-			));
-			$output .= '<h3>' . t('Frontend Configuration') . '</h3>';
-			$output .= '<dl>';
-			$output .= '<dt>' . t('Default Drupal Search') . '</dt>';
-			$output .= '<dd>' . t('After indexing your site Go to <a href="@search" target="_blank" > Search Settings </a>
-			          to override default drupal search with SearchBlox search results
-					  scroll down to Active Search Modules check on SearchBlox and save . Now your default drupal search will be overriden by SearchBlox. 
-					  <br/ ><b>Remember : If you cleared the configuration from the settings page uncheck SearchBlox from active search modules else no search results will be shown.</b><br /><br />  
-					  ', array(
-				'@search' => url('admin/config/search/settings')
-			)) . '</dd>';
-			$output .= '<dt>' . t('SearchBlox Search') . '</dt>';
-			$output .= '<dd>' . t('To show SearchBlox Search Block in your content area Go to <a href="@block" target="_blank" > structure/blocks </a> 
-					  scroll down to disabled blocks you will see SearchBlox Search, drag it to your content area and save option. You can now 
-					  configure your block for additional settings i.e set permissions, show block on all pages or only specific page etc. 
+            $output = '';
+            $output .= '<h3>' . t('How To Configure') . '</h3>';
+            $output .= '<p>' . t('<ol>
+                                    <li> Go to <a href="@settings" target="_blank" > SearchBlox settings page </a> to configure your settings. </li>
+                                    <li> Enter the name of the collection you have created in your SearchBlox application for indexing your site. </li>
+                                    <li> Index your site to this collection , after this step you will be able to show your search results from SearchBlox application.</li>
+                                    <li> Now on the <a href="@collection" target="_blank" > Search Collection Page </a> Mark those collection from where you need to show search results on your site , if you need to show your results from all the collections
+                                            available on your application don\'t mark any collection. By default It shows results from all the available collection.
+                                    </li>
+                                  </ol>    ', array(
+                '@settings' => url('admin/config/search/searchblox/'),
+                '@collection' => url('admin/config/search/searchblox/searchblox_collection')
+            ));
+            $output .= '<h3>' . t('Frontend Configuration') . '</h3>';
+            $output .= '<dl>';
+            $output .= '<dt>' . t('Default Drupal Search') . '</dt>';
+            $output .= '<dd>' . t('After indexing your site Go to <a href="@search" target="_blank" > Search Settings </a>
+                      to override default drupal search with SearchBlox search results
+                      scroll down to Active Search Modules check on SearchBlox and save . Now your default drupal search will be overriden by SearchBlox. 
+                      <br/ ><b>Remember : If you cleared the configuration from the settings page uncheck SearchBlox from active search modules else no search results will be shown.</b><br /><br />  
+                      ', array(
+                '@search' => url('admin/config/search/settings')
+            )) . '</dd>';
+            $output .= '<dt>' . t('SearchBlox Search') . '</dt>';
+            $output .= '<dd>' . t('To show SearchBlox Search Block in your content area Go to <a href="@block" target="_blank" > structure/blocks </a> 
+                      scroll down to disabled blocks you will see SearchBlox Search, drag it to your content area and save option. You can now 
+                      configure your block for additional settings i.e set permissions, show block on all pages or only specific page etc. 
 
-					  ', array(
-				'admin/structure/block'
-			)) . '</dd>';
-			$output .= '</dl>';
-		
-			return $output;
-        break;
+                      ', array(
+                'admin/structure/block'
+            )) . '</dd>';
+            $output .= '</dl>';
+            
+            return $output;
+            break;
     }
 }
-
 
 /**
  * Implements hook_permission().
