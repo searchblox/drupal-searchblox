@@ -123,8 +123,6 @@
         $nodeurl = url('node/' . $node->nid , $options) ;
 		$lm_date =  gmdate ( 'd F Y h:i:s T' , $node->changed ) ;  
 		$content =	"" ; 
-		//print_r($node->body[$lang][0]['value']); die ;
-		//$body = field_get_items('node', $node, 'body');
 		if(isset ( $node->body[$lang][0]['value'] ) ) : 
 			$content = $node->body[$lang][0]['value'];	
 		endif ; 
@@ -288,7 +286,7 @@
  */
  
  
-function searchblox_node_postinsert_index( $node ) {
+	function searchblox_node_postinsert_index( $node ) {
 	   
 		if(! $node->type == 'article' || ! $node->type == 'page' ) 
 		return ;
