@@ -26,8 +26,8 @@ function searchblox_curl_request( $url , $xml_input = ''  )
 	$response = drupal_http_request( $url, $options );
 
 	if ( !$response || $response->code != 200 ||  ! empty( $response->error ) ) {
-		$error_count++ ; 
-		return $error_count ; // "Something wrong with server configuration"
+		$error_count++ ;
+		return $response->code ; // "Something wrong with server configuration"
 	}  
 	$body = $response->data;
 	$xml = simplexml_load_string($body);
