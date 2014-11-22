@@ -58,7 +58,7 @@
 		<searchblox apikey="'.$api_key .'">
 		<document colname="'.$collection_name.'" uid="http://www.searchblox.com/">
 		</document>
-		</searchblox>' ; 
+		</searchblox>' ; serac
 
 
 		searchblox_curl_request( $url , $xml_input ) ; 
@@ -183,7 +183,10 @@
 					$error_count = searchblox_do_index( $node ) ;  // Indexes the node returns error if any
 					
 					global $statuscode ; 
-		
+					if($error_count == -111 ) // Connection refused by server
+			                {
+		                     		throw new Exception("SearchBlox was unable to connect to the server.");
+			                }
 					if( $statuscode == 502 )   // Invalid Document Location
 					{
 						throw new Exception("SearchBlox could not find the requested documents on this location.");
