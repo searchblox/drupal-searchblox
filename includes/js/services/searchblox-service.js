@@ -76,7 +76,7 @@ angular.module('searchblox.service', [])
        this.getCollectionValues = function (collection) {
 		    var collection_id_string = '' ; 
 		    var collection_ids = '' ;  
-            collection_ids  = Drupal.settings.searchblox.collection_ids ;
+            collection_ids  = searchblox.collection_ids ;
             
 			if( collection_ids ) { 
 		        

@@ -1,0 +1,48 @@
+searchblox.admin.config:
+  path: '/admin/config/search/searchblox'
+  parent: system.admin_config_development
+  defaults:
+    _controller: '\Drupal\searchblox\Controller\SearchbloxController::sbSettings'
+    _title: 'SearchBlox Settings'
+  requirements:
+    _permission: 'access searchblox'
+
+searchblox.step1:
+  path: '/admin/config/search/searchblox/step1'
+  defaults:
+    _form: '\Drupal\searchblox\Form\FirstStepForm'
+    _title: 'SearchBlox Step1'
+  requirements:
+    _permission: 'access searchblox'
+
+searchblox.step2:
+  path: '/admin/config/search/searchblox/step2'
+  defaults:
+    _form: '\Drupal\searchblox\Form\SecondStepForm'
+    _title: 'SearchBlox Settings'
+  requirements:
+    _permission: 'access searchblox'
+
+searchblox.step3:
+  path: '/admin/config/search/searchblox/step3'
+  defaults:
+    _controller: '\Drupal\searchblox\Controller\SearchbloxController::indexStep'
+    _title: 'SearchBlox Settings'
+  requirements:
+    _permission: 'access searchblox'
+
+searchblox.index_docs:
+  path: '/admin/config/search/searchblox/index_docs'
+  defaults:
+    _controller: '\Drupal\searchblox\Controller\SearchbloxController::indexDoc'
+    _title: 'SearchBlox Settings'
+  requirements:
+    _permission: 'access administration pages'
+
+searchblox.collection_page:
+  path: '/admin/config/search/searchblox/collection_page'
+  defaults:
+    _form: '\Drupal\searchblox\Form\CollectionPage'
+    _title: 'SearchBlox Collections'
+  requirements:
+    _permission: 'access administration pages'

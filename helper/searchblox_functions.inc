@@ -1,6 +1,4 @@
-<?php 
-
-
+<?php
 /**
  * Searchblox Helper Functions
  *
@@ -8,20 +6,36 @@
 
 
 /**
+ * Returns SearchBlox Articles and Pages from DB
+ */
+
+function searchblox_get_nodes_from_db($range)
+{
+    $query = \Drupal::database()->select('node', 'n');
+    $query->fields('n', ['nid']);
+    $query->condition(db_or()->condition('n.type', 'article' , '=')
+        ->condition('n.type', 'page', '='));
+    if($range) {
+        $query->range( $range["start"], $range["end"]);    
+    }
+
+    return $results = $query->execute()->fetchAllAssoc('nid');
+}
+
+/**
  * Returns SearchBlox Location with Port #
  */
 
 function searchblox_location()
-{
-    
-    if ((variable_get('searchblox_location')) && (variable_get('searchblox_portno'))):
-        return variable_get('searchblox_location') . ':' . variable_get('searchblox_portno');
+{   
+    if (\Drupal::state()->get('searchblox_location') &&  
+        \Drupal::state()->get('searchblox_portno')):
+        return \Drupal::state()->get('searchblox_location') . ':' . 
+            \Drupal::state()->get('searchblox_portno');
     else:
         return false;
     endif;
 }
-
-
 
 /*
  * Strips tags and takes an excerpt from the content 
@@ -82,7 +96,6 @@ function searchblox_description($value, $length = 100)
 }
 
 
-
 /*
  * Sanitizes text 
  * 
@@ -109,44 +122,6 @@ function searchblox_sanitize($text)
     
 }
 
-
-/**
- * Apply Styles To Admin Pages
- */
-function searchblox_admin_css()
-{
-    
-    drupal_add_css(drupal_get_path('module', 'searchblox') . '/includes/css/searchblox.css', array(
-        'group' => CSS_DEFAULT,
-        'type' => 'file'
-    ));
-}
-
-
-/**
- * SB Admin Header
- *
- * 
- */
-
-function searchblox_admin_header()
-{
-    
-    drupal_add_css(drupal_get_path('module', 'searchblox') . '/includes/css/searchblox.css', array(
-        'group' => CSS_DEFAULT,
-        'type' => 'file'
-    ));
-    
-    $header = '<div class="searchblox-logo" > 
-                      <h2 class="searchblox-h2">SearchBlox Search Module</h2> 
-                    </div>    
-                    <p>
-                        <b>To administer your SearchBlox Search Collection, visit the 
-                        <a href="' . searchblox_location() . '/searchblox/admin/main.jsp" 
-                        target="_blank">SearchBlox Dashboard.</a></b>
-                    </p>';
-    echo $header;
-}
 /*
  *
  *  Checks Collection selected in the form
@@ -154,12 +129,13 @@ function searchblox_admin_header()
  */
 function searchblox_form_collection($collection)
 {
-    if (variable_get('searchblox_search_collection')):
-        if (in_array($collection->{'@id'}, variable_get('searchblox_search_collection'))) {
+    if (\Drupal::state()->get('searchblox_search_collection')):
+        if (in_array($collection->{'@id'}, \Drupal::state()->get('searchblox_search_collection'))) {
             echo 'checked="checked"';
         }
     endif;
 }
+
 
 /*
  *
@@ -169,10 +145,9 @@ function searchblox_form_collection($collection)
 function searchblox_settings_configured()
 {
     
-    $api_key    = variable_get('searchblox_apikey');
-    $collection = variable_get('searchblox_collection');
+    $api_key    = \Drupal::state()->get('searchblox_apikey');
+    $collection = \Drupal::state()->get('searchblox_collection');
     $location   = searchblox_location();
-    
     
     if (!$api_key || !$collection || !$location) {
         return false;
@@ -181,38 +156,34 @@ function searchblox_settings_configured()
     }
 }
 
+/**
+* Functions For Post Action Triggers 
+*
+*/
+
 
 /**
- * Functions For Post Action Triggers 
- *
+ * implements hook_entity_insert
  */
-
-
-/**
- * @param $entity
- * @param $type
- */
-function searchblox_entity_insert($entity, $type)
+function searchblox_entity_insert(Drupal\Core\Entity\EntityInterface $entity)
 {
-    drupal_register_shutdown_function('_searchblox_post_save', $entity, $type, 'insert');
+    drupal_register_shutdown_function('_searchblox_post_save', $entity, 'insert');
 }
 
 /**
- * @param $entity
- * @param $type
+ * implements hook_entity_update
  */
-function searchblox_entity_update($entity, $type)
+function searchblox_entity_update(Drupal\Core\Entity\EntityInterface $entity)
 {
-    drupal_register_shutdown_function('_searchblox_post_save', $entity, $type, 'update');
+    drupal_register_shutdown_function('_searchblox_post_save', $entity, 'update');
 }
 
 /**
- * @param $entity
- * @param $type
+ * implements hook_entity_delete
  */
-function searchblox_entity_delete($entity, $type)
+function searchblox_entity_delete(Drupal\Core\Entity\EntityInterface $entity)
 {
-    drupal_register_shutdown_function('_searchblox_post_save', $entity, $type, 'delete');
+    drupal_register_shutdown_function('_searchblox_post_save', $entity, 'delete');
 }
 
 
@@ -223,7 +194,7 @@ function searchblox_entity_delete($entity, $type)
  * Invkoes Node Post Action Hooks
  */
 
-function _searchblox_post_save($entity, $type, $option)
+function _searchblox_post_save($entity, $option)
 {
     
     // Don't Perform any action if settings not configured 
@@ -232,36 +203,33 @@ function _searchblox_post_save($entity, $type, $option)
     endif;
     
     // If Sync Not performed
-    if (!variable_get('searchblox_indexed')):
+    if (!\Drupal::state()->get('searchblox_indexed')):
         return;
     endif;
     
     $saved        = FALSE;
     $new_entity   = NULL;
     $index_status = NULL;
-    
-    
+    $type = $entity->getEntityTypeId();
+    $nid = $entity->get('nid')->getValue()[0]["value"];
+
     if ($option == 'insert' || $option == 'update') {
         $saved        = TRUE;
         $index_status = '_index';
     }
     
     if ($option == 'delete') {
-        list($id) = entity_extract_ids($type, $entity);
-        $new_entity = entity_load($type, array(
-            $id
-        ));
+        $new_entity = \Drupal::entityTypeManager()->getStorage($type)->load($nid);
         if (!$new_entity) {
             $saved        = TRUE;
             $index_status = '_removeindex';
         }
     }
-    
-    
-    if ($saved) {
-        
+
+    if ($saved) {        
         if ($type == 'node') {
-            module_invoke_all('node_post' . $option . $index_status, $entity);
+            call_user_func('searchblox_node_post'. $option . $index_status, $entity);
+            //Drupal\Core\Extension\ModuleHandler::invokeAll('node_post' . $option . $index_status, $entity);
         }
     }
 }
@@ -276,7 +244,7 @@ function searchblox_get_col_ids()
 {
     
     $collection_ids = array();
-    $collection_ids = variable_get('searchblox_collection_ids');
+    $collection_ids = \Drupal::state()->get('searchblox_collection_ids');
     if (empty($collection_ids)) {
         return NULL;
     }
@@ -305,10 +273,8 @@ function searchblox_get_col_ids()
 
 function searchblox_full_plugin_url()
 {
-    
-    return url(drupal_get_path('module', 'searchblox'), array(
-        'absolute' => true
-    ));
+    $url =  \Drupal\Core\Url::fromRoute('searchblox.admin.config');
+    return $nodeurl = \Drupal::request()->getHost() . $url->toString();
 }
 
 /**

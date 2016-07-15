@@ -7,15 +7,15 @@ angular.module('searchblox.contentItem', []).
     	
         var getTemplate = function(contentType) {
             var templateLoader,
-                baseUrl = 'views/component-templates/',
+                view_path = 'views/component-templates/',
                 templateMap = {
                     image: 'image.html',
                     video: 'video.html',
                     href: 'href.html'
                 };
 
-            var templateUrl = Drupal.settings.searchblox.full_plugin_url + '/includes/' + baseUrl + templateMap[contentType];
-			// Drupal.settings.searchblox.full_plugin_url  
+            var templateUrl = searchblox.module_url + '/includes/' + view_path + templateMap[contentType];
+			// searchblox.full_plugin_url  
 			// Dyanmic variable passed from drupal for searchblox module full url
             templateLoader = $http.get(templateUrl, {cache: $templateCache});
             return templateLoader;

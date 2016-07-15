@@ -6,41 +6,34 @@
  */
 
 
-
 /**
  * Searchblox Clear Configuration
  *
  */
-
  
 	function searchblox_clear_config() {
 	
 		$xml_input = '
 					<?xml version="1.0" encoding="utf-8"?>
-					<searchblox apikey="'.variable_get('searchblox_apikey').'">
-					<document colname="'.variable_get('searchblox_collection').'">
+					<searchblox apikey="'.\Drupal::state()->get('searchblox_apikey').'">
+					<document colname="'.\Drupal::state()->get('searchblox_collection').'">
 					</document>
 					</searchblox>
 					' ; 
 		$url = searchblox_location()  . '/searchblox/api/rest/clear';
 		searchblox_curl_request( $url , $xml_input ) ; 
 		global $statuscode ;
-		
-	      // $statuscode == 400  Collection is cleared
-			variable_del('searchblox_apikey') ; 
-			variable_del('searchblox_collection') ; 
-			variable_del('searchblox_location') ; 
-			variable_del('searchblox_portno') ;
-			variable_del('searchblox_collection_ids') ;
-			variable_del('searchblox_indexed') ;
-	        variable_del('searchblox_search_collection') ;
-		
-		drupal_goto( 'admin/config/search/searchblox' ) ; 
+
+		\Drupal::state()->delete('searchblox_apikey');
+		\Drupal::state()->delete('searchblox_collection');
+		\Drupal::state()->delete('searchblox_location');
+		\Drupal::state()->delete('searchblox_portno');
+		\Drupal::state()->delete('searchblox_collection_ids');
+		\Drupal::state()->delete('searchblox_indexed');
+		\Drupal::state()->delete('searchblox_search_collection');
+		return;
 	}
 
- 
- 
- 
  
  /**
  * Description : Validates the Form API Key and Location by getting status of a dummy doc
@@ -58,7 +51,7 @@
 		<searchblox apikey="'.$api_key .'">
 		<document colname="'.$collection_name.'" uid="http://www.searchblox.com/">
 		</document>
-		</searchblox>' ; serac
+		</searchblox>' ; 
 
 
 		searchblox_curl_request( $url , $xml_input ) ; 
@@ -69,12 +62,11 @@
 		
 		if( $statuscode == 601 ) : 
 			$step_verify = false ;		
-			form_set_error('searchblox_api', t('Invalid API.') ); 
+			return t('Invalid API.');
 		
 		elseif( empty( $statuscode ) ) : 
-			 $step_verify = false ;
-			  form_set_error('searchblox_location', 
-		  t('Invalid Server Name OR Port #. <br/>  OR   <br/> Unable to communicate with the server.') );
+			$step_verify = false ;
+			return t('Invalid Server Name OR Port #. <br/>  OR   <br/> Unable to communicate with the server.');
 		
 		else : 
 			$step_verify = true ; 
@@ -93,193 +85,113 @@
  
 	function searchblox_check_collection ( $collection_name = '' ) { 
 
-		$xml_input ='
-				<?xml version="1.0" encoding="utf-8"?>
-				<searchblox apikey="'. variable_get('searchblox_apikey').'">
+		$xml_input ='<?xml version="1.0" encoding="utf-8"?>
+				<searchblox apikey="'. \Drupal::state()->get('searchblox_apikey').'">
 				<document colname="'.$collection_name.'" />
 				</searchblox>
 				';
 
 		$url = searchblox_location() . '/searchblox/api/rest/clear';
+		
 		searchblox_curl_request( $url , $xml_input ) ; 
-		global $statuscode;
-		 
-		if($statuscode == 500) {
-		    
-			form_set_error ( 'searchblox_collection','Please Enter A Valid Collection Name.'); // Set error 
-			return false ;  // Invalid Collection 
+		global $searchblox_statuscode;
+
+		if($searchblox_statuscode == 500) {
+			return 'Please Enter A Valid Collection Name.' ;  // Invalid Collection 
 		} else {
 			return true ; 
 		}
 	}
 
-	function searchblox_xml_form( $node  , $category = '' , $node_tags = ''  ) {
-	    
-		if( $node->language ) { 
-			$lang = $node->language ;  // Language choosen 
-		}
-		
+	function searchblox_xml_form( $node, $data ) {
+
 		$options = array('absolute' => TRUE);
-        $nodeurl = url('node/' . $node->nid , $options) ;
-		$lm_date =  gmdate ( 'd F Y h:i:s T' , $node->changed ) ;  
+		$url = \Drupal\Core\Url::fromRoute('entity.node.canonical', 
+			['node' => $data['nid']],$options);
+		$nodeurl = $url->toString();
+		$lm_date =  gmdate ( 'd F Y h:i:s T' , $data['created']) ;  
 		$content =	"" ; 
-		if(isset ( $node->body[$lang][0]['value'] ) ) : 
-			$content = $node->body[$lang][0]['value'];	
+		$data['tags'] = "";
+		$data['categories'] = "";
+
+		if(isset($data['content'])) : 
+			$content = $data['content'];
 		endif ; 
 			
 		return  $xml_input = '<?xml version="1.0" encoding="utf-8"?>
-				<searchblox apikey="'.variable_get('searchblox_apikey').'">
-				<document colname="'.variable_get('searchblox_collection').'" 
-				location="'.$nodeurl.'">
-				<url>'.$nodeurl.'</url>
-				<lastmodified>' . $lm_date . '</lastmodified>
-				<title boost="1">' . searchblox_sanitize( $node->title ) . '</title>
-				<keywords boost="1">' . $node_tags . '</keywords>
-				<content boost="1">' .  searchblox_sanitize( $node->title ) . " " . searchblox_sanitize( $content ) . '</content>
-				<description boost="1">' . searchblox_description( $content ) . '</description>
-				<size>'.(2*strlen( $content )).'</size>
-				<alpha></alpha>
-				<contenttype>HTML</contenttype>'.$category.'
-				</document>
-				</searchblox>
-				';
-	}	
-
-	
-/**
- * AJAX Function which indexes Docs to SearchBlox.
- *
- */
-    function searchblox_index_doc() {
-        
-        if( ! $_GET['_ajax_token'] ==  $_SESSION['searchblox']['token'] ) :
-	       return ; 
-	    endif ;
-        
-		$offset = isset( $_GET['offset'] ) ? intval( $_GET['offset'] ) : 0;
-		$batch_size = isset( $_GET['batch_size'] ) ? intval( $_GET['batch_size'] ) : 3 ;
-		$resp = NULL;
-		$num_written = 0 ;
-		$query_limit =  $batch_size ; 
-		
-		$results = array() ;
-		$query = db_select('node','n')->fields('n', array ('nid') );
-        $db_or = db_or();
-		$db_or->condition('n.type', 'page' , '=');
-		$db_or->condition('n.type', 'article' , '=');
-		$query->condition($db_or);
-		$query->range( $offset ,  $query_limit );
-		$results = $query->execute();
-         
-        
-		$total_posts = $query->execute()->rowCount();
-	   
-		if( $total_posts > 0 ) {
-			try {
-				foreach ( $results as $result ) { 
-
-                    $node = node_load( $result->nid );  				
-  
-					$error_count = searchblox_do_index( $node ) ;  // Indexes the node returns error if any
-					
-					global $statuscode ; 
-					if($error_count == -111 ) // Connection refused by server
-			                {
-		                     		throw new Exception("SearchBlox was unable to connect to the server.");
-			                }
-					if( $statuscode == 502 )   // Invalid Document Location
-					{
-						throw new Exception("SearchBlox could not find the requested documents on this location.");
-					}	
-					
-					if ( $error_count == 0 ) { 
-						$num_written++;
-					} else  {
-					
-						 throw new Exception("Some Documents could not be indexed. Please Try again !");
-						 return ; 
-					}
-				}
-				
-			} catch ( Exception $e ) { 
-				
-				$error = array(
-					'error' => $e->getMessage()
-					) ; 
-			}
-			
-		} else {
-			$num_written = 0;
-		}
-	 
-	    if( ! isset( $error )  && ( $error_count == 0 ) ) {
-		   //If indexing successful , then set variable
-
-            if( ! variable_get('searchblox_indexed') ) {
-		       variable_set('searchblox_indexed' , 1 ) ; // TO KNOW THAT INDEXING AHS BEEN DONE
-		    }		   
-		   
-		}
-		
-		
-		header( 'Content-Type: application/json' );
-		if( ! isset( $error ) ) {
-			
-		$response = array( 'num_written' => $num_written, 'total' => $total_posts ); 
-		print( json_encode( $response ) );
-			
-		} else {
-			
-			 print( json_encode( $error ) ); 
-		}
-      	 
-        die() ; // end ajax response , no output now except one hooked with register_shutdown
-      
-    }
+			<searchblox apikey="'.\Drupal::state()->get('searchblox_apikey').'">
+			<document colname="'.\Drupal::state()->get('searchblox_collection').'" 
+			location="'.$nodeurl.'">
+			<url>'.$nodeurl.'</url>
+			<lastmodified>' . $lm_date . '</lastmodified>
+			<title boost="1">' . searchblox_sanitize( $data['title'] ) . '</title>
+			<keywords boost="1">' . $data['tags'] . '</keywords>
+			<content boost="1">' .  searchblox_sanitize( $data['title'] ) . " " . searchblox_sanitize( $content ) . '</content>
+			<description boost="1">' . searchblox_description( $content ) . '</description>
+			<size>'.(2*strlen( $content )).'</size>
+			<alpha></alpha>
+			<contenttype>HTML</contenttype>'.$data['categories'].'
+			</document>
+			</searchblox>
+		';
+	}
 	
 /**
  * Indexes The Node Returns Error If Any.
  *
  */	
-	function searchblox_do_index( $node ) {
-	    
-		if( $node->language ) { 
-			$lang = $node->language ;  // Language choosen 
-		}
-		$categories = "" ; 
-		$tags = "" ; 
-		
-		//If tags are set for the node
-		if( isset ( $node->field_tags[$lang][0]['tid'] ) ) {
-		   
-			$node_tags = $node->field_tags[$lang] ; 
-			
-			foreach( $node_tags as $node_tag ) {
-			   $term = taxonomy_term_load( $node_tag['tid'] );
-			   $tags .= $term->name. ', ' ;  
-			 
+	function searchblox_do_index($node, $nid) {
+		try {
+		    $data['nid'] = $nid;
+		    $data['title'] = $node->get('title')->getValue()[0]["value"];
+			$data['created'] = $node->get('created')->getValue()[0]["value"];
+			$data['content']= "";
+
+			if( $node->get('langcode')->getValue()[0]["value"] ) { 
+				// Language choosen 
+				$data['lang'] = $node->get('langcode')->getValue()[0]["value"]; 
 			}
-			$tags = rtrim( $tags , ', ' ) ; 
-		}
-		
-		// If categories Set then collect Categories
-		
-		if( isset( $node->field_categories[$lang][0]['tid'] ) ) {
-		
-			$node_categories = $node->field_categories[$lang] ; 
-			foreach( $node_categories as $node_category ) {
-			   $term = taxonomy_term_load( $node_category['tid'] );
-			   $categories .= '<category>' . $term->name . '</category>' ;  
-			 
+			//print_r($node->get('body')->getValue()); die;
+			if(null !== ($node->get('body'))) {
+				if($node->get('body')->getValue()) {
+					$data['content'] = $node->get('body')->getValue()[0]["value"];
+				}
 			}
+
+			if(null !== ($node->get('field_tags'))) {
+				$field_tags = $node->get('field_tags')->getValue();
+
+				if($field_tags) {
+					$tags = "";
+					foreach($field_tags as $tag) {
+						$val = \Drupal::entityManager()->getStorage("taxonomy_term")->load( $tag['target_id'] );
+						$tags .= $val->get('name')->getValue()[0]["value"] . ", ";
+					}
+					$data['tags'] = rtrim($tags , ", ");
+				}
+			}
+
+			if(null !== ($node->get('field_category'))) {
+				$field_cats = $node->get('field_category')->getValue();
+
+				if($field_cats) {
+					$categories = "";
+					foreach($field_cats as $cat) {
+						$val = \Drupal::entityManager()->getStorage("taxonomy_term")->load( $cat['target_id'] );
+						$categories .= '<category>'.$val->get('name')->getValue()[0]["value"].'</category>';
+					}
+
+					$data['categories'] = $categories;
+				}
+			}
+		} catch(Exception $e) {
+			//
 		}
-		
-		$xml_input = searchblox_xml_form( $node , $categories , $tags ) ; 
-       
+
+		$xml_input = searchblox_xml_form($node, $data);
 		$url = searchblox_location() .'/searchblox/api/rest/add';
-       
-		return  $error_count = searchblox_curl_request( $url , $xml_input ) ;   		
-	     
+
+		return $error_count = searchblox_curl_request( $url , $xml_input );
 	}
 	
 	
@@ -290,12 +202,12 @@
  
  
 	function searchblox_node_postinsert_index( $node ) {
-	   
-		if(! $node->type == 'article' || ! $node->type == 'page' ) 
+	   	$nid = $node->get('nid')->getValue()[0]["value"];
+
+		if(! $node->getType() == 'article' || ! $node->getType() == 'page' ) 
 		return ;
 		
-        searchblox_do_index( $node ) ; // Index the newly created node
-		
+        searchblox_do_index( $node, $nid ) ; // Index the newly created node	
 	}
 
 	
@@ -304,13 +216,13 @@
  * Invoked By searchblox_post_save()
  */
  
- 
 	function searchblox_node_postupdate_index( $node ) {
+		$nid = $node->get('nid')->getValue()[0]["value"];
 
-		if(! $node->type == 'article' || ! $node->type == 'page' ) 
+		if(! $node->getType() == 'article' || ! $node->getType() == 'page' ) 
 		return ;
 		
-		searchblox_do_index( $node ) ; // Index the newly updated node
+		searchblox_do_index( $node, $nid ) ; // Index the newly updated node
 
 	}	
 
@@ -322,22 +234,24 @@
  
  
 	function searchblox_node_postdelete_removeindex( $node ) {
+		$nid = $node->get('nid')->getValue()[0]["value"];
 
-		if(! $node->type == 'article' || ! $node->type == 'page' ) 
+		if(! $node->getType() == 'article' || ! $node->getType() == 'page' ) 
 		return ;
 	     
-		// Deletes the node  
-		$options = array('absolute' => TRUE);
-        $node_url = url('node/' . $node->nid , $options) ;
+		// Deletes the node
+        $options = array('absolute' => TRUE);
+		$url = \Drupal\Core\Url::fromRoute('entity.node.canonical', 
+			['node' => $nid],$options);
+		$node_url = $url->toString();
+
 		$xml_input ='
-				<?xml version="1.0" encoding="utf-8"?>
-				<searchblox apikey="'. variable_get('searchblox_apikey').'">
-				<document colname="'.variable_get('searchblox_collection').'" uid="'.$node_url.'"/>
-				</searchblox>
-				';
+			<?xml version="1.0" encoding="utf-8"?>
+			<searchblox apikey="'. \Drupal::state()->get('searchblox_apikey').'">
+			<document colname="'.\Drupal::state()->get('searchblox_collection').'" uid="'.$node_url.'"/>
+			</searchblox>
+		';
 				
 		$url = searchblox_location() . '/searchblox/api/rest/delete';
-		
-		$error_count = searchblox_curl_request( $url , $xml_input ); 
-
+		$error_count = searchblox_curl_request( $url , $xml_input );
 	}

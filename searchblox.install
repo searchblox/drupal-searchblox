@@ -1,52 +1,32 @@
 <?php 
-
 /**
  * @file
  *   SerachBlox module install hooks.
  */
  
- 
 /**
  * Implements hook_install().
- */
+*/
 
- 
 function searchblox_install() 
 {
-
-  // Get the weight of the module we want to compare against
-  $weight = db_select('system', 's')
-              ->fields('s', array('weight'))
-              ->condition('name', 'taxonomy', '=')
-              ->execute()
-              ->fetchField();
-			  
-			  
-  // Set our module to a weight 1 heavier, so ours moves lower in execution order
-  db_update('system')
-    ->fields(array('weight' => $weight + 1))
-    ->condition('name', 'searchblox', '=')
-    ->execute();
-
+  $weight = \Drupal::configFactory()->getEditable('core.extension')
+    ->get("module.taxonomy") + 1;
+  module_set_weight('searchblox', $weight);
 }
-
 
 /**
  * Implements hook_uninstall().
- */
+*/
  
- 
- function searchblox_uninstall() 
- {
-    // Delete All Vars From SearchBlox
- 
-	 variable_del('searchblox_apikey') ; 
-	 variable_del('searchblox_collection') ; 
-	 variable_del('searchblox_location') ; 
-	 variable_del('searchblox_portno') ;
-	 variable_del('searchblox_collection_ids') ;
-	 variable_del('searchblox_indexed') ;
-	 variable_del('searchblox_search_collection') ;
-	 variable_del('searchblox_list_collection') ;
-	 variable_del('searchblox_form') ;
- }
+function searchblox_uninstall() 
+{
+  // Delete All Vars From SearchBlox
+  \Drupal::state()->delete('searchblox_apikey');
+  \Drupal::state()->delete('searchblox_collection');
+  \Drupal::state()->delete('searchblox_location');
+  \Drupal::state()->delete('searchblox_portno');
+  \Drupal::state()->delete('searchblox_collection_ids');
+  \Drupal::state()->delete('searchblox_indexed');
+  \Drupal::state()->delete('searchblox_search_collection');
+}

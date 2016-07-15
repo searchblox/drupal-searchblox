@@ -6,10 +6,9 @@
 angular.module('searchblox.controller', [])
     .controller('searchbloxController', ['$rootScope', '$scope', '$http', '$location', 'searchbloxService', 'searchbloxFactory', 'facetFactory', '$q', '$timeout', '$sce',
         function ($rootScope, $scope, $http, $location, searchbloxService, searchbloxFactory, facetFactory, $q, $timeout, $sce) {// 'autoCompleteFactory',
-
-			var searchUrl        = Drupal.settings.searchblox.search_url ; 
-			var autoSuggestUrl   = Drupal.settings.searchblox.auto_suggest_url ; 
-			var reportServletUrl = Drupal.settings.searchblox.report_servlet_url ; 
+			var searchUrl        = searchblox.search_url ; 
+			var autoSuggestUrl   = searchblox.auto_suggest_url ; 
+			var reportServletUrl = searchblox.report_servlet_url ; 
 			 
             // Hard coded these values. This needs to be dynamic
             //var facet = 'on';

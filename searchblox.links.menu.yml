@@ -1,0 +1,11 @@
+searchblox.step1:
+  title: SearchBlox Configuration
+  description: 'Manage SearchBlox Settings'
+  parent: system.admin_config_search
+  route_name: searchblox.admin.config
+
+searchblox.collection_page:
+  title: SearchBlox Search Collections
+  description: 'Search Collections for SearchBlox'
+  parent: system.admin_config_search
+  route_name: searchblox.collection_page

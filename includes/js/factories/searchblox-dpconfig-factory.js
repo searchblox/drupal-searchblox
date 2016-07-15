@@ -38,7 +38,7 @@ Drupal.behaviors.searchblox = {
 
 
 /*
-for (var x in Drupal.settings.searchblox) {
+for (var x in searchblox) {
   console.log(x) ;
 }
  //alert(searchblox_reportservlet) ;

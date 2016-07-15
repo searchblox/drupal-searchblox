@@ -1,0 +1,4 @@
+access searchblox:
+  title: 'Administer permission for SearchBlox'
+  description: 'Access control for SearchBlox module'
+  restrict access: TRUE

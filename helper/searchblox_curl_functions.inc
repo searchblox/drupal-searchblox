@@ -8,36 +8,46 @@
 */
 
 
-	/*
-	*  POST cURL request to Searchblox
-	*
-	*/
-	
+/*
+*  POST cURL request to Searchblox
+*
+*/
+
 function searchblox_curl_request( $url , $xml_input = ''  ) 
 {
-
+	//die("Asas");
 	$error_count = 0 ;
-	$options['headers']['Content-Type'] = 'text/xml';
+	$options['headers'] = ['Content-Type' => 'text/xml'] ;
 	$options['method'] = 'POST';
 	$options['data'] = trim( $xml_input );
 	$options['max_redirects'] = 5 ;
-	$options['timeout'] = 10 ;
+	$options['timeout'] = 111300 ;
+	$options['http_errors'] = false ;
 
-	$response = drupal_http_request( $url, $options );
+	$client = new GuzzleHttp\Client([
+    	'timeout'  => 111300
+	]);
 
-	if ( !$response || $response->code != 200 ||  ! empty( $response->error ) ) {
-		$error_count++ ;
-		return $response->code ; // "Something wrong with server configuration"
-	}  
-	$body = $response->data;
+	try {
+	    $response = $client->request('POST', $url, [
+		    'body' => $options['data'],
+		    'http_errors' => false
+		]);
+	} catch (RequestException $e) {
+	    if ($e->hasResponse()) {
+	        return Psr7\str($e->getResponse());
+	    }
+	}
+
+	$body = $response->getBody()->getContents();
 	$xml = simplexml_load_string($body);
 
-	global $statuscode; 
-	$statuscode = (string) $xml->statuscode ;
+	global $searchblox_statuscode;
+	$searchblox_statuscode = $xml->statuscode;
 
-	if (intval($statuscode)>=100 AND intval($statuscode)<=701) {
+	if (intval($searchblox_statuscode)>=100 AND intval($searchblox_statuscode)<=701) {
 
-		if ( intval($statuscode) == 100 ) {
+		if ( intval($searchblox_statuscode) == 100 ) {
 			$error_count = 0; // After first succesful connection, lets reset error counter 
 		}
 		else { 
@@ -45,7 +55,7 @@ function searchblox_curl_request( $url , $xml_input = ''  )
 
 		}
 
-	} elseif ( $statuscode != '' ) {
+	} elseif ( $searchblox_statuscode != '' ) {
 
 		$error_count++; // Skip if document cannot be indexed
 	}
@@ -54,28 +64,38 @@ function searchblox_curl_request( $url , $xml_input = ''  )
 }
 
 
-	/*
-	*  GET cURL request to Searchblox
-	*
-	*/
-
+/*
+*  GET cURL request to Searchblox
+*
+*/
 
 function searchblox_curl_get_request( $url ) 
 {
 
-	$options['headers']['Content-Type'] = 'text/xml';
+	$options['headers'] =['Content-Type' => 'text/xml'] ;
 	$options['method'] = 'GET';
 	$options['max_redirects'] = 5 ;
-	$options['timeout'] = 10 ;
+	$options['timeout'] = 30 ;
+	$options['http_errors'] = false ;
 
-	$response = drupal_http_request( $url, $options );
+	$client = new GuzzleHttp\Client([
+    	'timeout'  => 30
+	]);
 
-	if ( !$response || $response->code != 200 ||  ! empty( $response->error ) ) {
+	try {
+	    $response = $client->request('GET', $url , $options['headers']);
+	} catch (RequestException $e) {
+	    if ($e->hasResponse()) {
+	        return Psr7\str($e->getResponse());
+	    }
+	}
+
+	if ( !$response || $response->getStatusCode() != 200 ) {
 		return NULL ; // "Something wrong with server configuration"
 	} 
 
-	$results = $response->data ; 
+	$results = $response->getBody()->getContents(); 
 
-	return $response = json_decode( $results ) ; 
+	return $response = json_decode($results) ; 
 
 }

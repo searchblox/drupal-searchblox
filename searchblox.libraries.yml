@@ -1,0 +1,36 @@
+searchblox-deps:
+  version: 1.x
+  css:
+    theme:
+      includes/css/searchblox.css: {}
+  js:
+    includes/js/searchblox_index_doc.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupalSettings
+
+searchblox-frontpage:
+  version: 1.x
+  css:
+    theme:
+      includes/bootstrap/css/bootstrap.css: {}
+      includes/css/autosuggest-style.css: {}
+      includes/css/custom-style.css: {}
+  js:
+    includes/js/custom-lib/myscripts.js: {}
+    includes/js/angular.js: {}
+    includes/lib/angular-resource.min.js: {}
+    includes/lib/angular-sanitize.min.js: {}
+    includes/lib/moment.js: {}
+    includes/lib/json2extension.js: {}
+    includes/lib/ui-bootstrap-tpls-0.10.0.js: {}
+    includes/js/controllers/searchblox-controller.js: {}
+    includes/js/directives/autocomplete-directive.js: {}
+    includes/js/directives/custom-input-directive.js: {}
+    includes/js/directives/media-template-directive.js: {}
+    includes/js/directives/ads-template-directive.js: {}
+    includes/js/factories/searchblox-factory.js: {}
+    includes/js/filters/searchblox-filter.js: {}
+    includes/js/modules/facet-module.js: {}
+    includes/js/modules/searchblox-module.js: {}
+    includes/js/services/searchblox-service.js: {}

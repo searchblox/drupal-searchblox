@@ -1,25 +1,9 @@
 <?php 
 
-		/**
-		*     FUNCTIONS FOR FRONTEND OF SEARCHBLOX
-		*
-		*/
-
-	
 /**
- * Implements hook_search_info().
- */ 
-
-function searchblox_search_info()
-{
-    return array(
-        'title' => 'Content',
-        'path' => 'node',
-        'conditions_callback' => 'searchblox_search_execute'
-    );
-    
-}
-
+*     FUNCTIONS FOR FRONTEND OF SEARCHBLOX
+*
+*/
 
 /**
  * Implements hook_search_execute().
@@ -34,7 +18,7 @@ function searchblox_search_execute($keys = NULL)
     endif;
     
     
-    $query          = urlencode(check_plain($keys));
+    $query          = urlencode(Html::escape($keys));
     $collection_col = searchblox_get_col_ids();
     $url            = searchblox_location() . '/searchblox/servlet/SearchServlet?&query=' . $query . '&xsl=json&' . $collection_col;
     $response       = searchblox_curl_get_request($url);
@@ -71,7 +55,7 @@ function searchblox_search_execute($keys = NULL)
                 $extra     = module_invoke_all('node_search_result', $node);
                 $results[] = array(
                     'link' => $nodeurl,
-                    'type' => check_plain(node_type_get_name($node)),
+                    'type' => Html::escape(node_type_get_name($node)),
                     'title' => $node->title,
                     'user' => theme('username', array(
                         'account' => $node
@@ -107,140 +91,43 @@ function searchblox_search_execute($keys = NULL)
 
 
 /**
-*   Implemenets hook_block_info() 
-*
-*/
+ * Returns SearchBlox Index Page Table
+ */
 
+function searchblox_get_index_page_table() {
 
-function searchblox_block_info()
-{
-    // This example comes from node.module.
-    $blocks['searchblox_search'] = array(
-        'info' => t('SearchBlox Search'),
-        'cache' => DRUPAL_CACHE_GLOBAL
+    $header = array(
+        t('SearchBlox Module Settings'),
+        array(
+          'data' => '',
+          'colspan' => 2
+    ));
+
+    $rows = array(
+        array(
+            'data' => array(
+                'API Key:',
+                \Drupal::state()->get('searchblox_apikey')
+            )
+        ),
+        array(
+            'data' => array(
+                'Search Collection Name :',
+                \Drupal::state()->get('searchblox_collection')
+            )
+        ),
+        array(
+            'data' => array(
+                'Number of Searchable Posts:',
+                ''
+            ),
+            'id' => array('index_doc_div')    
+        )
     );
-    
-    return $blocks;
-    
-}
 
-
-/**
-*  Implemenets hook_block_view() 
-*
-*/
-
-
-function searchblox_block_view($delta = '')
-{
-    // This example is adapted from node.module.
-    $block = array();
-    
-    switch ($delta) {
-        
-        case 'searchblox_search':
-            
-            if (user_access('access content')) {
-                
-                if (path_is_admin(current_path())) {
-                    return;
-                }
-                
-                if (module_exists('overlay') && path_is_admin($_GET['q'])) {
-                    return;
-                }
-                
-                
-                // Prepare Vars For Setting them in Drupal.Settings
-
-                $search_url         = (searchblox_location()) ? searchblox_location() . '/searchblox/servlet/SearchServlet' : '';
-                $auto_suggest_url   = (searchblox_location()) ? searchblox_location() . '/searchblox/servlet/AutoSuggest' : '';
-                $report_servlet_url = (searchblox_location()) ? searchblox_location() . '/searchblox/servlet/ReportServlet' : '';
-                $full_plugin_url    = searchblox_full_plugin_url();
-                $collection_ids     = array();
-                $collection_ids     = (variable_get('searchblox_collection_ids')) ? variable_get('searchblox_collection_ids') : '';
-                
-                // Setting Vars in Drupal.Settings
-                drupal_add_js(array(
-                    'searchblox' => array(
-                        
-                        'search_url' => $search_url,
-                        'auto_suggest_url' => $auto_suggest_url,
-                        'report_servlet_url' => $report_servlet_url,
-                        'full_plugin_url' => $full_plugin_url,
-                        'collection_ids' => $collection_ids
-                    )
-                ), array(
-                    'type' => 'setting',
-                    'group' => 0
-                    
-                ));
-                
-                //Adds Angular Js First
-                drupal_add_js(drupal_get_path('module', 'searchblox') . '/includes/js/angular.js');
-               
-                
-                $block['content'] = array(
-                    '#markup' => _searchblox_search_block(),
-                    '#attached' => array(
-                        'css' => array(
-                            drupal_get_path('module', 'searchblox') . '/includes/css/autosuggest-style.css',
-                            drupal_get_path('module', 'searchblox') . '/includes/css/custom-style.css',
-                            drupal_get_path('module', 'searchblox') . '/includes/bootstrap/css/bootstrap.css'
-                        ),
-                        'js' => array(
-                            
-                            drupal_get_path('module', 'searchblox') . '/includes/lib/angular-resource.min.js',
-                            drupal_get_path('module', 'searchblox') . '/includes/lib/angular-sanitize.min.js',
-                            drupal_get_path('module', 'searchblox') . '/includes/lib/moment.js',
-                            drupal_get_path('module', 'searchblox') . '/includes/lib/json2extension.js',
-                            drupal_get_path('module', 'searchblox') . '/includes/lib/ui-bootstrap-tpls-0.10.0.js',
-                            
-                            drupal_get_path('module', 'searchblox') . '/includes/js/controllers/searchblox-controller.js',
-                            drupal_get_path('module', 'searchblox') . '/includes/js/directives/autocomplete-directive.js',
-                            drupal_get_path('module', 'searchblox') . '/includes/js/directives/custom-input-directive.js',
-                            drupal_get_path('module', 'searchblox') . '/includes/js/directives/media-template-directive.js',
-                            drupal_get_path('module', 'searchblox') . '/includes/js/directives/ads-template-directive.js',
-                            drupal_get_path('module', 'searchblox') . '/includes/js/factories/searchblox-factory.js',
-                            drupal_get_path('module', 'searchblox') . '/includes/js/filters/searchblox-filter.js',
-                            drupal_get_path('module', 'searchblox') . '/includes/js/modules/facet-module.js',
-                            drupal_get_path('module', 'searchblox') . '/includes/js/modules/searchblox-module.js',
-                            drupal_get_path('module', 'searchblox') . '/includes/js/services/searchblox-service.js',
-                            drupal_get_path('module', 'searchblox') . '/includes/js/custom-lib/myscripts.js'
-                        )
-                    )
-                );
-            } else {
-                $block['content'] = t('Not Allowed To View Content.');
-            }
-            
-            break;
-    }
-    return $block;
-}
-
-
-/**
-*   Gets Block HTML 
-*
-*/
-
-function _searchblox_search_block() 
-{
-    
-    return '
-            <div ng-app="searchbloxModule" class="container">
-                <div ng-controller="searchbloxController" ng-init="init()">
-                    <form class="center-block" >
-                        <custominput id="xyz" ng-model="query" onsearch="startSearch" inputstyle="inputClass">
-                            <autocomplete source="loadItems" ng-show="showAutoSuggest"></autocomplete>
-                        </custominput>
-                    </form>
-                    <div ng-include 
-                    src="\'' . searchblox_full_plugin_url() . '/includes/views/search-results.html' . '\'' . '" >
-                    </div>
-                </div>
-            </div>
-                ';
-    
+    return $page_table['table'] = array(
+      '#theme' => 'table',
+      '#header' => $header,
+      '#rows' => $rows,
+    );
 }

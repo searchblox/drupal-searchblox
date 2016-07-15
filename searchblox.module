@@ -10,14 +10,12 @@
  * @param arg
  *   Array that holds the current path as returned from arg() function
  */
- 
- 
- 
-function searchblox_help($path, $arg)
+function searchblox_help($route_name, 
+    Drupal\Core\Routing\RouteMatchInterface $route_match)
 {
     
-    switch ($path) {
-        case "admin/help#searchblox":
+    switch ($route_name) {
+        case 'help.page.searchblox':
             $output = '';
             $output .= '<h3>' . t('How To Configure') . '</h3>';
             $output .= '<p>' . t('<ol>
@@ -28,27 +26,17 @@ function searchblox_help($path, $arg)
                                             available on your application don\'t mark any collection. By default It shows results from all the available collection.
                                     </li>
                                   </ol>    ', array(
-                '@settings' => url('admin/config/search/searchblox/'),
-                '@collection' => url('admin/config/search/searchblox/searchblox_collection')
+                '@settings' => \Drupal::url('searchblox.admin.config'),
+                '@collection' => \Drupal::url('searchblox.collection_page')
             ));
             $output .= '<h3>' . t('Frontend Configuration') . '</h3>';
             $output .= '<dl>';
-            $output .= '<dt>' . t('Default Drupal Search') . '</dt>';
-            $output .= '<dd>' . t('After indexing your site Go to <a href="@search" target="_blank" > Search Settings </a>
-                      to override default drupal search with SearchBlox search results
-                      scroll down to Active Search Modules check on SearchBlox and save . Now your default drupal search will be overriden by SearchBlox. 
-                      <br/ ><b>Remember : If you cleared the configuration from the settings page uncheck SearchBlox from active search modules else no search results will be shown.</b><br /><br />  
-                      ', array(
-                '@search' => url('admin/config/search/settings')
-            )) . '</dd>';
             $output .= '<dt>' . t('SearchBlox Search') . '</dt>';
-            $output .= '<dd>' . t('To show SearchBlox Search Block in your content area Go to <a href="@block" target="_blank" > structure/blocks </a> 
-                      scroll down to disabled blocks you will see SearchBlox Search, drag it to your content area and save option. You can now 
+            $output .= '<dd>' . t('To show SearchBlox Search Block in your content area Go to <a href="' . \Drupal::url('block.admin_display') . '" target="_blank" > structure/blocks </a> 
+                      scroll down to disabled blocks you will see <strong>SearchBlox Search </strong>, drag it to your content area and save option. You can now 
                       configure your block for additional settings i.e set permissions, show block on all pages or only specific page etc. 
 
-                      ', array(
-                'admin/structure/block'
-            )) . '</dd>';
+                      ') . '</dd>';
             $output .= '</dl>';
             
             return $output;
@@ -57,27 +45,12 @@ function searchblox_help($path, $arg)
 }
 
 /**
- * Implements hook_permission().
- */
-function searchblox_permission() {
-  return array(
-    'access searchblox' => array(
-      'title' => t('Administer permission for SearchBlox'),
-      'description' => t(''),
-    ),
-  );
-}
-
-
-
-/**
  * Load Necessary files.
  *
  */
 
 
 if (function_exists('module_load_include')) {
-    
     module_load_include('inc', 'searchblox', 'helper/searchblox_functions');
     module_load_include('inc', 'searchblox', 'helper/searchblox_api_functions');
     module_load_include('inc', 'searchblox', 'helper/searchblox_curl_functions');
@@ -87,376 +60,39 @@ if (function_exists('module_load_include')) {
 }
 
 /**
- * Implements hook_menu().
- */
-function searchblox_menu()
-{
-    $items = array();
-    
-    $items['admin/config/search/searchblox'] = array(
-        'title' => 'SearchBlox Settings',
-        'description' => 'Configuration for SearchBlox',
-        'page callback' => 'searchblox_admin_page',
-        'access arguments' => array(
-            'access searchblox'
-        ),
-        'type' => MENU_NORMAL_ITEM
-    );
-    
-    
-    $items['admin/config/search/searchblox/step1'] = array(
-        'title' => 'SearchBlox Settings',
-        'description' => 'Configuration for SearchBlox',
-        'page arguments' => array(
-            'searchblox_api_step'
-        ),
-        'page callback' => 'drupal_get_form',
-        'access arguments' => array(
-            'access searchblox'
-        ),
-        'type' => MENU_NORMAL_ITEM
-    );
-    
-    $items['admin/config/search/searchblox/step2'] = array(
-        'title' => 'SearchBlox Settings',
-        'description' => 'Configuration for SearchBlox',
-        'page arguments' => array(
-            'searchblox_collection_step'
-        ),
-        'page callback' => 'drupal_get_form',
-        'access arguments' => array(
-            'access searchblox'
-        ),
-        'type' => MENU_NORMAL_ITEM
-    );
-    
-    // Main Page
-    $items['admin/config/search/searchblox/step3'] = array(
-        'title' => 'SearchBlox Settings',
-        'description' => 'Configuration for SearchBlox',
-        'page callback' => 'searchblox_index_step',
-        'access arguments' => array(
-            'access searchblox'
-        )
-    );
-    
-	
-	// Seacrh Collection Page
-	
-    $items['admin/config/search/searchblox_collection'] = array(
-        'title' => 'SearchBlox Search Collections',
-        'description' => 'Search Collections for SearchBlox',
-        'page arguments' => array(
-            'searchblox_collection_page'
-        ),
-        'page callback' => 'drupal_get_form',
-        'access arguments' => array(
-            'access searchblox'
-        ),
-        'type' => MENU_NORMAL_ITEM
-    );
-	
-	
-	 //  AJAX REQUEST FOR INDEXING 
-	$items['admin/config/search/searchblox/index_docs'] = array(
-	'page callback' => 'searchblox_index_doc',
-	'access arguments' => array('access administration pages')
-	); 
-	
-	
-	return $items ;
-}
-
-
-/**
- * First Page To render Admin View
- */
-
-function searchblox_admin_page()
-{
-    
-    if (!(variable_get('searchblox_apikey')) || !(searchblox_location())) {
-        
-        drupal_goto('admin/config/search/searchblox/step1');
-        
-    } elseif (!(variable_get('searchblox_collection'))) {
-        
-        drupal_goto('admin/config/search/searchblox/step2');
-        
-    } else {
-        
-        drupal_goto('admin/config/search/searchblox/step3');
-    }
-    
-}
-
-
-/**
- * API page function which displays API form
- */
-
-function searchblox_api_step($form, &$form_state)
-{
-    
-    searchblox_admin_css();
-    
-    $form = array();
-    
-    $form['header'] = array(
-        '#type' => 'item',
-        '#markup' => '<div class="searchblox-logo" > 
-                           <h2 class="searchblox-h2">SearchBlox Search Module</h2> 
-                         </div>'
-    );
-     
-    $form['page_details'] = array(
-        '#type' => 'fieldset',
-        '#title' => t('Authorize the SearchBlox Search Module'),
-        '#description' => t('Thanks for installing the SearchBlox Search Module for Drupal. Please enter your SearchBlox configuration details to get started.')
-    );
-    
-    $form['searchblox_api'] = array(
-        '#type' => 'textfield',
-        '#title' => 'SearchBlox Api Key',
-        '#default_value' => check_plain(variable_get('searchblox_apikey')),
-        '#description' => 'Enter the API key of SearchBlox application.',
-        '#required' => TRUE
-    );
-    
-    $form['searchblox_location'] = array(
-        '#type' => 'textfield',
-        '#title' => 'SearchBlox Server Name',
-        '#default_value' => check_plain(variable_get('searchblox_location')),
-        '#description' => 'Enter the location of SearchBlox server.',
-        '#required' => TRUE
-    );
-    
-    $form['searchblox_portno'] = array(
-        '#type' => 'textfield',
-        '#title' => 'SearchBlox Port #',
-        '#default_value' => check_plain(variable_get('searchblox_portno')),
-        '#description' => 'Enter the Port # of SearchBlox server.',
-        '#required' => TRUE
-    );
-    
-    
-    $form['#submit'][] = array(
-        '#name' => 'searchblox_api_submit',
-        '#value' => t('Authorize')
-    );
-    
-    return system_settings_form($form);
-    
-}
-
-
-/**
- * Validates API page function form
- */
-
-function searchblox_api_step_validate($form, &$form_state)
-{
-    
-    
-    if (isset($form)) {
-        if (isset($form['#token'])) {
-            if (!drupal_valid_token($form_state['values']['form_token'], $form['#token'])) {
-                // Setting this error will cause the form to fail validation.
-                form_set_error('form_token', t('Validation error, please try again. If this error persists, please contact the site administrator.'));
-                
-                // Stop here and don't run any further validation handlers, because they
-                // could invoke non-safe operations which opens the door for CSRF
-                // vulnerabilities.
-                $error = "No valid Token";
-                return;
-            }
-            
-            $api      = check_plain($form['searchblox_api']['#value']);
-            $location = rtrim(check_plain($form['searchblox_location']['#value']), '/');
-			$location = searchblox_addhttp( $location ) ; 
-            $port_no  = intval(check_plain($form['searchblox_portno']['#value']));
-            $resp     = searchblox_verify_api_loc($api, $location, $port_no);
-            
-            if ($resp == true) {
-                
-                variable_set('searchblox_apikey', $api);
-                variable_set('searchblox_location', $location);
-                variable_set('searchblox_portno', $port_no);
-                
-                drupal_goto('admin/config/search/searchblox/step2');
-            }
-        }
-    }
-}
-
-
-/**
- * Shows collection page 
- */
-
-function searchblox_collection_step($form, &$form_state)
-{
-    
-    //Return To Step 1 if API Or LOCATION Not set 
-    
-    if (!(variable_get('searchblox_apikey')) || !(variable_get('searchblox_location'))) {
-        drupal_goto('admin/config/search/searchblox/step1');
-        return;
-    }
-    
-    searchblox_admin_css();
-    
-    $form = array();
-    
-    $form['header'] = array(
-        '#type' => 'item',
-        '#markup' => '<div class="searchblox-logo" > 
-                           <h2 class="searchblox-h2">SearchBlox Search Module</h2> 
-                         </div>'
-    );
-    
-    $form['page_details'] = array(
-        '#type' => 'fieldset',
-        '#title' => t('Configure your Search Collection'),
-        '#description' => t('Please enter the name of search collection for this module:')
-    );
-    
-    $form['searchblox_collection'] = array(
-        '#type' => 'textfield',
-        '#title' => 'Collection Name',
-        '#default_value' => check_plain(variable_get('searchblox_collection')),
-        '#description' => 'Search Collection Name .',
-        '#required' => TRUE
-    );
-    $form['#submit'][]             = 'searchblox_collection_submit';
-    
-    return system_settings_form($form);
-}
-
-
-/**
- *  Validates the Collection STEP2 
- *
- */
-
-
-function searchblox_collection_step_validate($form, &$form_state)
-{
-    
-    if (isset($form)) {
-        if (isset($form['#token'])) {
-            if (!drupal_valid_token($form_state['values']['form_token'], $form['#token'])) {
-                // Setting this error will cause the form to fail validation.
-                form_set_error('form_token', t('Validation error, please try again. If this error persists, please contact the site administrator.'));
-                
-                // Stop here and don't run any further validation handlers, because they
-                // could invoke non-safe operations which opens the door for CSRF
-                // vulnerabilities.
-                $error = "No valid Token";
-                return;
-            }
-            
-            $collection_name = check_plain($form['searchblox_collection']['#value']);
-            $resp            = searchblox_check_collection($collection_name); // check weather collection name is valid
-            if ($resp) {
-                
-                variable_set('searchblox_collection', $collection_name);
-                drupal_goto('admin/config/search/searchblox/step3');
-            }
-        }
-    }
-}
-
-
-/**
  * Implements hook_theme().
  */
 
 function searchblox_theme($existing, $type, $theme, $path)
 {
     
+    global $base_url;
+
     $theme = array(
         'searchblox_full_page' => array(
             'path' => drupal_get_path('module', 'searchblox') . '/theme',
             'template' => 'searchblox_full_page',
             'variables' => array(
-                'table_data' => NULL
+                'table_data' => searchblox_get_index_page_table(),
+                'searchblox_location' => searchblox_location()
             )
         ),
-        'searchblox_collection_page' => array(
+        'searchblox_frontend_view' => array(
             'path' => drupal_get_path('module', 'searchblox') . '/theme',
-            'template' => 'searchblox_collection_page'
+            'template' => 'searchblox_frontend_view',
+            'variables' => array(
+                'baseUrl' => $base_url
+            )
+
+        ),
+        'searchblox_header' => array(
+            'path' => drupal_get_path('module', 'searchblox') . '/theme',
+            'template' => 'searchblox_header'
         )
     );
     
     return $theme;
 }
-
-/*
- *  STEP 3 : Indexing Of Posts
- *
- */
-
-
-function searchblox_index_step()
-{
-    
-    // Return If Settings not configured
-    
-    if (!(variable_get('searchblox_apikey')) || !(variable_get('searchblox_location'))) {
-        drupal_goto('admin/config/search/searchblox/step1');
-        return;
-    } elseif (!(variable_get('searchblox_collection'))) {
-        
-        drupal_goto('admin/config/search/searchblox/step2');
-        return;
-    }
-    
-    
-    if (isset($_POST['searchblox_re_configure'])) {
-        
-        searchblox_clear_config();
-    }
-    
-    $table_data['header'] = $header = array(
-        array(
-            'data' => t('SearchBlox Module Settings'),
-            'colspan' => 2
-        )
-    );
-    
-    $table_data['rows'] = $rows = array(
-        array(
-            'data' => array(
-                'API Key:',
-                variable_get('searchblox_apikey')
-            )
-        ),
-        array(
-            'data' => array(
-                'Search Collection Name :',
-                variable_get('searchblox_collection')
-            )
-        ),
-        array(
-            'data' => array(
-                'Number of Searchable Posts:',
-                '<span id="num_indexed_documents"></span>'
-            )
-        )
-    );
-    
-    $searchblox_full_page = array(
-        '#theme' => 'searchblox_full_page',
-        '#table_data' => $table_data
-    );
-    searchblox_add_js_settings();
-    
-    
-    return drupal_render($searchblox_full_page);
-    
-}
-
 
 /**
  * Pass Data To Js File
@@ -464,158 +100,8 @@ function searchblox_index_step()
 
 function searchblox_add_js_settings()
 {
-    
     global $base_url;
-    global $user;
-    
-    $_token                          = drupal_get_token();
-    $_SESSION['searchblox']['token'] = $_token;
-    
-    $query = db_select('node', 'n')->fields('n', array(
-        'nid'
-    ));
-    $db_or = db_or();
-    $db_or->condition('n.type', 'page', '=');
-    $db_or->condition('n.type', 'article', '=');
-    $query->condition($db_or);
-    $docs = $query->execute()->rowCount();
-    
-    
-    drupal_add_js(array(
-        'searchblox' => array(
-            'base_url' => $base_url,
-            'total_docs' => $docs,
-            '_token' => $_token
-        )
-    ), array(
-        'type' => 'setting'
-    ));
-    
-}
-
-
-/**
- * Shows SearchBlox Search Collections
- */
-
-function searchblox_collection_page($form, &$form_state)
-{
-    
-    
-    $location = searchblox_location();
-    $url      = $location . '/searchblox/servlet/SearchServlet?&query=""&xsl=json';
-    $response = searchblox_curl_get_request($url);
-    
-    $collections = array();
-    
-    if ($response) {
-        $collections = $response->searchform->collections;
-    }
-    
-    if (!$location) {
-        drupal_set_message(t('<p> SearchBlox settings not configured yet. </p>'), 'error');
-        
-    } elseif (empty($collections)) {
-        
-        drupal_set_message(t('<p> You have created no collections yet. </p>'), 'error');
-        
-    }
-    $header = array(
-        'id' => t('ID'),
-        'collection_name' => t('Collection Name')
-    );
-    
-    $options = $collec_names = $default_value = array();
-    
-    $collec_names = variable_get('searchblox_search_collection'); // Collections already selected by user 
-    
-    foreach ($collections as $collection) {
-        $options[$collection->{'@name'}] = array(
-            'id' => t(check_plain($collection->{'@id'})),
-            'collection_name' => t(check_plain($collection->{'@name'}))
-        );
-        
-        if ($collec_names) {
-            // If the collection is the one already selected than mark it. 
-            if (in_array($collection->{'@name'}, $collec_names)) {
-                
-                $default_value[$collection->{'@name'}] = true; // Should have same key as options array
-            }
-        }
-    }
-    searchblox_admin_css();
-    $form['header'] = array(
-        '#type' => 'item',
-        '#markup' => '<div class="searchblox-logo" > 
-                           <h2 class="searchblox-h2">SearchBlox Search Module</h2> 
-                         </div>'
-    );
-    
-    
-    $form['page_details']               = array(
-        '#type' => 'fieldset',
-        '#title' => t('Mark the collections you want to show your search results from.'),
-        '#description' => t('<p><strong>NOTE : If not marked, it will search from all of the available collections on your server.</strong></p>')
-    );
-    $form['searchblox_list_collection'] = array(
-        '#type' => 'tableselect',
-        '#header' => $header,
-        '#options' => $options,
-        '#empty' => t('No Collections found'),
-        '#default_value' => $default_value
-    );
-    
-    
-    return system_settings_form($form);
-}
-
-
-
-/**
- *  Data Form Search Collection page validated and saved
- *
- */
-
-
-function searchblox_collection_page_validate($form, &$form_state)
-{
-    
-    if (isset($form)) {
-        if (isset($form['#token'])) {
-            if (!drupal_valid_token($form_state['values']['form_token'], $form['#token'])) {
-                // Setting this error will cause the form to fail validation.
-                form_set_error('form_token', t('Validation error, please try again. If this error persists, please contact the site administrator.'));
-                
-                // Stop here and don't run any further validation handlers, because they
-                // could invoke non-safe operations which opens the door for CSRF
-                // vulnerabilities.
-                $error = "No valid Token";
-                return;
-            }
-            
-            $collections = $collection_name = $collection_ids = array();
-            
-            
-            // If collections selected
-            if (isset($form_state['values']['searchblox_list_collection']) && ($form['searchblox_list_collection']['#options'])) {
-                $collections = $form_state['values']['searchblox_list_collection'];
-                
-                foreach ($collections as $collection) {
-                    
-                    $collection_name[] = check_plain($collection);
-                    if ($collection) {
-                        $collection_ids[] = intval(check_plain($form['searchblox_list_collection']['#options'][$collection]['id']));
-                    }
-                }
-                
-                
-                variable_set('searchblox_search_collection', $collection_name);
-                variable_set('searchblox_collection_ids', $collection_ids);
-                
-            } else {
-                variable_set('searchblox_search_collection', '');
-                variable_set('searchblox_collection_ids', '');
-            }
-        }
-    }
+    $results = searchblox_get_nodes_from_db($range = false);
+    $rowCount = count($results);
+    return ["base_url" => $base_url , "total_docs" => $rowCount];
 }

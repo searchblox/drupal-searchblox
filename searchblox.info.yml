@@ -1,0 +1,9 @@
+name: SearchBlox
+type: module
+description: SearchBlox Search Plugin
+
+configure: searchblox.admin.config
+
+version: VERSION
+core: 8.x
+version: '8.x-1'
