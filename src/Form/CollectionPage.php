@@ -44,18 +44,22 @@ class CollectionPage extends FormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
     $location = searchblox_location();
-    $url      = $location . '/searchblox/servlet/SearchServlet?&query=""&xsl=json';
-    $response = searchblox_curl_get_request($url);
+    $response = "";
 
+    if (!$location) {
+      $form_state->setErrorByName('error', t('<p> SearchBlox settings not configured yet. </p>'));
+    } else {
+      $url      = $location . '/searchblox/servlet/SearchServlet?&query=""&xsl=json';
+      $response = searchblox_curl_get_request($url);
+    }
+    
     $collections = array();
 
     if ($response) {
       $collections = $response->searchform->collections;
     }
 
-    if (!$location) {
-      $form_state->setErrorByName('error', t('<p> SearchBlox settings not configured yet. </p>'));
-    } elseif (empty($collections)) {
+    if (empty($collections)) {
       $form_state->setErrorByName('error', t('<p> You have created no collections yet. </p>'));
     }
     $header = array(

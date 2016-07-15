@@ -43,7 +43,6 @@ class FirstStepForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-
    $form['header'] = array(
         '#type' => 'item',
         '#markup' => '<div class="searchblox-logo" > 
