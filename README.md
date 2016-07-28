@@ -6,3 +6,8 @@ SearchBlox Drupal module for indexing/searching your Drupal website and displayi
 Now upload this zip file.
 * When the install is complete you will see the link below as `Enable newly added modules`. Click here to enable the module. Search `SearchBlox` in your list on modules check it and click install on the end of the page. This will enable the module.
 * Once the module is installed. Again naviagte to `Searchblox` in the list on modules, click the toggle icon shown next to this `SearchBlox Search Plugin`, you will find a menu named `help`. Click on this menu and It will guide you how to configure this module OR visit this URL `admin/help/searchblox`
+
+    ##### Frontend Search
+    * To display SearchBlox frontend search UI on your page. In the admin Navigate to  `Structure->Block layout->Content-> Place Block`
+    * Now in the popup search `SearchBlox Search` and click place block
+    * This will add the SearchBlox frontend UI search to your site's content area.
